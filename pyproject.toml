@@ -1,0 +1,14 @@
+[project]
+name = "agentcy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "autogen>=0.8.4",
+    "autogen-agentchat>=0.4.9.3",
+    "autogen-ext[openai]>=0.4.9.3",
+    "bs4>=0.0.2",
+    "httpx>=0.28.1",
+    "langchain>=0.3.22",
+]

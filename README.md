@@ -56,6 +56,7 @@ The agents involved in the collaboration include:
 
 ## 🛠️ Tools Used
 
+1. 'Autogen 0.4' for multi-agent orchestration
 1. `Serper` for realtime web search
 2. `Browserless` for web scrape
 3. `Langchain` for content summarization 
@@ -67,15 +68,23 @@ The agents involved in the collaboration include:
 ## ⚙️ Setup & Configuration
 
 1. Ensure required libraries are installed:
+
+### Using uv (Recommended)
+
+1. Install uv (A fast Python package installer and resolver):
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-pip install pyautogen
+```bash
+uv pip install -r pyproject.toml
 ```
 
 2. Set up the OpenAI configuration list by either providing an environment variable `OAI_CONFIG_LIST` or specifying a file path.
 ```
 [
     {
-        "model": "gpt-3.5-turbo", #or whatever model you prefer
+        "model": "gpt-4o", #or whatever model you prefer
         "api_key": "INSERT_HERE"
     }
 ]
