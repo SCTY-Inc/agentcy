@@ -111,6 +111,10 @@ class CampaignLayout:
         return self.root / "package" / "deck.md"
 
     @property
+    def package_brief(self) -> Path:
+        return self.root / "package" / "brief.md"
+
+    @property
     def assets_dir(self) -> Path:
         return self.root / "package" / "assets"
 
