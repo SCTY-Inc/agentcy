@@ -1,0 +1,35 @@
+# Product Launch Campaign Template
+#
+# Stages and their agent assignments
+
+name: product-launch
+description: Launch a new product with research, strategy, copy, and activation
+
+stages:
+  research:
+    agent: researcher
+    exit_criteria:
+      - min_sources: 5
+      - min_insights: 3
+      - competitors_analyzed: true
+
+  strategy:
+    agent: strategist
+    exit_criteria:
+      - positioning_defined: true
+      - audience_persona: true
+      - messaging_pillars: 3
+
+  creative:
+    agent: copywriter
+    exit_criteria:
+      - headline_variants: 3
+      - body_variants: 2
+      - cta_variants: 2
+
+  activation:
+    agent: marketer
+    exit_criteria:
+      - channels_defined: 2
+      - calendar_entries: 5
+      - kpis_defined: 3
