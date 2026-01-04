@@ -5,7 +5,7 @@ Returns structured CopyDeck artifacts.
 """
 
 from agno.agent import Agent
-from agno.models.anthropic import Claude
+from agno.models.google import Gemini
 
 from agentcy.models.artifacts import CopyDeck
 from agentcy.models.brand import BrandKit
@@ -14,7 +14,7 @@ from agentcy.models.brand import BrandKit
 def create_copywriter(
     campaign_id: str,
     brand: BrandKit | None = None,
-    model_id: str = "claude-sonnet-4-20250514",
+    model_id: str = "gemini-3-flash-preview",
     debug: bool = False,
 ) -> Agent:
     """Create a Copywriter agent.
@@ -22,7 +22,7 @@ def create_copywriter(
     Args:
         campaign_id: ID of the current campaign
         brand: Brand kit for voice guidelines
-        model_id: Anthropic model to use
+        model_id: Gemini model to use
         debug: Enable debug logging
 
     Returns:
@@ -41,7 +41,7 @@ def create_copywriter(
 
     return Agent(
         name="Copywriter",
-        model=Claude(id=model_id),
+        model=Gemini(id=model_id),
         output_schema=CopyDeck,
         description="You are an expert copywriter who creates compelling marketing copy.",
         instructions=[
@@ -64,7 +64,7 @@ def run_copywriting(
     strategy_brief: str,
     campaign_id: str,
     brand: BrandKit | None = None,
-    model_id: str = "claude-sonnet-4-20250514",
+    model_id: str = "gemini-3-flash-preview",
 ) -> CopyDeck:
     """Generate copy based on strategy.
 
@@ -72,7 +72,7 @@ def run_copywriting(
         strategy_brief: Strategy brief summary
         campaign_id: ID of the current campaign
         brand: Brand kit for voice guidelines
-        model_id: Anthropic model to use
+        model_id: Gemini model to use
 
     Returns:
         Structured CopyDeck

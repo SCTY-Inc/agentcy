@@ -5,21 +5,21 @@ Returns structured ResearchReport artifacts.
 """
 
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+from agno.models.google import Gemini
 
 from agentcy.models.artifacts import CompetitorAnalysis, ResearchReport, Source
 
 
 def create_researcher(
     campaign_id: str,
-    model_id: str = "gpt-4o-mini",
+    model_id: str = "gemini-2.5-flash-lite",
     debug: bool = False,
 ) -> Agent:
     """Create a Researcher agent.
 
     Args:
         campaign_id: ID of the current campaign
-        model_id: OpenAI model to use
+        model_id: Gemini model to use
         debug: Enable debug logging
 
     Returns:
@@ -29,7 +29,7 @@ def create_researcher(
 
     return Agent(
         name="Researcher",
-        model=OpenAIChat(id=model_id),
+        model=Gemini(id=model_id),
         tools=[search_web, scrape_url],
         output_schema=ResearchReport,
         description="You are a market research expert.",
@@ -50,14 +50,14 @@ def create_researcher(
 def run_research(
     brief: str,
     campaign_id: str,
-    model_id: str = "gpt-4o-mini",
+    model_id: str = "gemini-2.5-flash-lite",
 ) -> ResearchReport:
     """Run research for a campaign brief.
 
     Args:
         brief: Campaign brief text
         campaign_id: ID of the current campaign
-        model_id: OpenAI model to use
+        model_id: Gemini model to use
 
     Returns:
         Structured ResearchReport

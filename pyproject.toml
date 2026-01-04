@@ -23,9 +23,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     # Image generation
     "replicate>=0.15.0",
-    # LLM providers
-    "openai>=1.0.0",
-    "anthropic>=0.25.0",
+    # LLM provider (Gemini)
+    "google-genai>=1.0.0",
     # Web scraping
     "beautifulsoup4>=4.12.0",
 ]

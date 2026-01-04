@@ -5,7 +5,7 @@ Provides scores and improvement recommendations.
 """
 
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+from agno.models.google import Gemini
 from pydantic import BaseModel, Field
 
 from agentcy.models.brand import BrandKit
@@ -33,14 +33,14 @@ class QualityReview(BaseModel):
 
 def create_critic(
     brand: BrandKit | None = None,
-    model_id: str = "gpt-4o",
+    model_id: str = "gemini-3-flash-preview",
     debug: bool = False,
 ) -> Agent:
     """Create a Critic agent.
 
     Args:
         brand: Brand kit for alignment checking
-        model_id: OpenAI model to use
+        model_id: Gemini model to use
         debug: Enable debug logging
 
     Returns:
@@ -60,7 +60,7 @@ BRAND GUIDELINES:
 
     return Agent(
         name="Critic",
-        model=OpenAIChat(id=model_id),
+        model=Gemini(id=model_id),
         output_schema=QualityReview,
         description="You are a senior creative director who reviews campaign artifacts for quality.",
         instructions=[
@@ -82,7 +82,7 @@ def review_artifact(
     artifact_content: str,
     artifact_type: str,
     brand: BrandKit | None = None,
-    model_id: str = "gpt-4o",
+    model_id: str = "gemini-3-flash-preview",
 ) -> QualityReview:
     """Review an artifact for quality.
 
@@ -90,7 +90,7 @@ def review_artifact(
         artifact_content: Content of the artifact to review
         artifact_type: Type of artifact (research, strategy, copy, activation)
         brand: Brand kit for alignment checking
-        model_id: OpenAI model to use
+        model_id: Gemini model to use
 
     Returns:
         QualityReview with scores and feedback

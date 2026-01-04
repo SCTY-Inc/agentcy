@@ -18,10 +18,10 @@ from agentcy.models.brand import BrandKit
 class ModelConfig(BaseModel):
     """Model configuration per task type."""
 
-    default: str = "gpt-4o"
-    research: str = "gpt-4o-mini"
-    creative: str = "claude-sonnet-4"
-    critic: str = "gpt-4o"
+    default: str = "gemini-3-flash-preview"
+    research: str = "gemini-2.5-flash-lite"
+    creative: str = "gemini-3-flash-preview"
+    critic: str = "gemini-3-flash-preview"
 
 
 class AgentcyConfig(BaseModel):

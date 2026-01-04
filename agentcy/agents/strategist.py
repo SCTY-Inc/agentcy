@@ -5,21 +5,21 @@ Returns structured StrategyBrief artifacts.
 """
 
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+from agno.models.google import Gemini
 
 from agentcy.models.artifacts import StrategyBrief
 
 
 def create_strategist(
     campaign_id: str,
-    model_id: str = "gpt-4o",
+    model_id: str = "gemini-3-flash-preview",
     debug: bool = False,
 ) -> Agent:
     """Create a Strategist agent.
 
     Args:
         campaign_id: ID of the current campaign
-        model_id: OpenAI model to use
+        model_id: Gemini model to use
         debug: Enable debug logging
 
     Returns:
@@ -27,7 +27,7 @@ def create_strategist(
     """
     return Agent(
         name="Strategist",
-        model=OpenAIChat(id=model_id),
+        model=Gemini(id=model_id),
         output_schema=StrategyBrief,
         description="You are a marketing strategist with deep expertise in positioning and messaging.",
         instructions=[
@@ -48,7 +48,7 @@ def run_strategy(
     research_summary: str,
     brief: str,
     campaign_id: str,
-    model_id: str = "gpt-4o",
+    model_id: str = "gemini-3-flash-preview",
 ) -> StrategyBrief:
     """Develop strategy based on research.
 
@@ -56,7 +56,7 @@ def run_strategy(
         research_summary: Summary of research findings
         brief: Original campaign brief
         campaign_id: ID of the current campaign
-        model_id: OpenAI model to use
+        model_id: Gemini model to use
 
     Returns:
         Structured StrategyBrief
