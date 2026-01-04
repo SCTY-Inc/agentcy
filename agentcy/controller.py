@@ -5,6 +5,7 @@ Custom orchestrator (NOT Agno Workflows) that manages:
     - Human gates at each transition (approve/edit/regen)
     - Persistence to SQLite
     - Resume capability
+    - Culture seeding for shared agent knowledge
 """
 
 import hashlib
@@ -15,6 +16,8 @@ from typing import Any, Callable
 from pydantic import BaseModel
 
 from agentcy.config import AgentcyConfig, load_config
+from agentcy.culture import ensure_culture_seeded
+from agentcy.db import get_agno_db
 from agentcy.models.artifacts import (
     ActivationPlan,
     CopyDeck,
@@ -71,6 +74,12 @@ class CampaignController:
         self.config = config or load_config()
         self.on_stage_complete = on_stage_complete
         self.on_stage_error = on_stage_error
+
+        # Get shared Agno database for Culture
+        self.db = get_agno_db()
+
+        # Seed Culture with frameworks and brand voice
+        ensure_culture_seeded(brand=brand)
 
     @property
     def current_stage(self) -> Stage:
@@ -271,6 +280,7 @@ class CampaignController:
             brief=self.campaign.brief,
             campaign_id=self.campaign.id,
             model_id=self.config.models.research,
+            db=self.db,
         )
 
     def _run_strategy(self, inputs: dict[str, Any]) -> StrategyBrief:
@@ -288,6 +298,7 @@ class CampaignController:
             research_summary=research_summary,
             campaign_id=self.campaign.id,
             model_id=self.config.models.default,
+            db=self.db,
         )
 
     def _run_creative(self, inputs: dict[str, Any]) -> CopyDeck:
@@ -308,6 +319,7 @@ Messaging Pillars: {', '.join(artifact.get('messaging_pillars', []))}
             campaign_id=self.campaign.id,
             brand=self.brand,
             model_id=self.config.models.creative,
+            db=self.db,
         )
 
     def _run_activation(self, inputs: dict[str, Any]) -> ActivationPlan:
@@ -331,6 +343,7 @@ Messaging Pillars: {', '.join(artifact.get('messaging_pillars', []))}
             copy_summary=copy_summary,
             campaign_id=self.campaign.id,
             model_id=self.config.models.default,
+            db=self.db,
         )
 
     def _run_packaging(self, inputs: dict[str, Any]) -> dict[str, Any]:

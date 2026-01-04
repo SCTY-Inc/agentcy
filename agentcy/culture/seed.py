@@ -6,15 +6,17 @@ Brand voice is seeded as read-only to prevent drift.
 
 from agno.culture.manager import CultureManager
 from agno.db.schemas.culture import CulturalKnowledge
-from agno.db.sqlite import SqliteDb
 
+from agentcy.db import get_agno_db
 from agentcy.models.brand import BrandKit
 
+# Track what's been seeded this session to avoid duplicates
+_seeded: set[str] = set()
 
-def get_culture_manager(db_path: str = "agentcy.db") -> CultureManager:
-    """Get a CultureManager instance with SQLite backend."""
-    db = SqliteDb(db_file=db_path)
-    return CultureManager(db=db)
+
+def get_culture_manager() -> CultureManager:
+    """Get a CultureManager instance using shared database."""
+    return CultureManager(db=get_agno_db())
 
 
 def seed_brand_voice(manager: CultureManager, brand: BrandKit) -> None:
@@ -23,6 +25,11 @@ def seed_brand_voice(manager: CultureManager, brand: BrandKit) -> None:
     Brand voice is fundamental to consistent output quality.
     This is seeded manually (not via model) to ensure exact preservation.
     """
+    key = f"brand_voice:{brand.name}"
+    if key in _seeded:
+        return
+    _seeded.add(key)
+
     tone_str = ", ".join(brand.voice.tone) if brand.voice.tone else "professional"
     avoid_str = ", ".join(brand.voice.avoid) if brand.voice.avoid else "none specified"
 
@@ -55,6 +62,9 @@ Writing Rules:
 
 def seed_marketing_frameworks(manager: CultureManager) -> None:
     """Seed standard marketing frameworks as cultural knowledge."""
+    if "marketing_frameworks" in _seeded:
+        return
+    _seeded.add("marketing_frameworks")
 
     frameworks = CulturalKnowledge(
         name="Marketing Frameworks",
@@ -99,6 +109,9 @@ Apply these frameworks when developing strategy briefs, copy decks, and activati
 
 def seed_quality_rubrics(manager: CultureManager) -> None:
     """Seed quality rubrics for artifact evaluation."""
+    if "quality_rubrics" in _seeded:
+        return
+    _seeded.add("quality_rubrics")
 
     rubrics = CulturalKnowledge(
         name="Quality Rubrics",
@@ -149,6 +162,9 @@ GENERAL QUALITY:
 
 def seed_copywriting_principles(manager: CultureManager) -> None:
     """Seed copywriting best practices."""
+    if "copywriting_principles" in _seeded:
+        return
+    _seeded.add("copywriting_principles")
 
     copywriting = CulturalKnowledge(
         name="Copywriting Principles",
@@ -195,13 +211,16 @@ AVOID:
     manager.add_cultural_knowledge(copywriting)
 
 
-def seed_all(manager: CultureManager, brand: BrandKit | None = None) -> None:
+def seed_all(manager: CultureManager | None = None, brand: BrandKit | None = None) -> None:
     """Seed all cultural knowledge.
 
     Args:
-        manager: CultureManager instance
+        manager: CultureManager instance (uses default if None)
         brand: Optional brand kit to seed voice from
     """
+    if manager is None:
+        manager = get_culture_manager()
+
     # Always seed frameworks and rubrics
     seed_marketing_frameworks(manager)
     seed_quality_rubrics(manager)
@@ -210,3 +229,15 @@ def seed_all(manager: CultureManager, brand: BrandKit | None = None) -> None:
     # Seed brand voice if provided
     if brand:
         seed_brand_voice(manager, brand)
+
+
+def ensure_culture_seeded(brand: BrandKit | None = None) -> None:
+    """Convenience function to ensure Culture is seeded.
+
+    Call this at campaign init to ensure all agents have access
+    to shared knowledge.
+
+    Args:
+        brand: Optional brand kit for voice guidelines
+    """
+    seed_all(brand=brand)

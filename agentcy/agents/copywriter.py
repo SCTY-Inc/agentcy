@@ -2,9 +2,12 @@
 
 Generates headlines, body copy, and CTAs that match brand guidelines.
 Returns structured CopyDeck artifacts.
+
+Uses Agno Culture for brand voice, copywriting principles, and AIDA framework.
 """
 
 from agno.agent import Agent
+from agno.db.sqlite import SqliteDb
 from agno.models.google import Gemini
 
 from agentcy.models.artifacts import CopyDeck
@@ -15,6 +18,7 @@ def create_copywriter(
     campaign_id: str,
     brand: BrandKit | None = None,
     model_id: str = "gemini-3-flash-preview",
+    db: SqliteDb | None = None,
     debug: bool = False,
 ) -> Agent:
     """Create a Copywriter agent.
@@ -23,10 +27,11 @@ def create_copywriter(
         campaign_id: ID of the current campaign
         brand: Brand kit for voice guidelines
         model_id: Gemini model to use
+        db: Agno database for Culture access
         debug: Enable debug logging
 
     Returns:
-        Configured Agno Agent
+        Configured Agno Agent with Culture context
     """
     brand_instructions = []
     if brand:
@@ -48,13 +53,17 @@ def create_copywriter(
             "Generate 3+ headline variants that grab attention.",
             "Write 2+ body copy variants that build interest and desire.",
             "Create 2+ CTA variants that drive action.",
-            "Apply AIDA framework: Attention, Interest, Desire, Action.",
+            "Apply copywriting principles and AIDA framework from Culture.",
             "Keep headlines under 10 words for impact.",
             "Use active voice and benefit-focused language.",
             "Score your own copy against brand voice guidelines (0.0-1.0).",
             *brand_instructions,
             f"Always set campaign_id to '{campaign_id}' in your response.",
         ],
+        # Culture integration - copywriter reads brand voice and principles
+        db=db,
+        add_culture_to_context=True if db else False,
+        update_cultural_knowledge=False,  # Brand voice is read-only
         add_datetime_to_context=True,
         debug_mode=debug,
     )
@@ -65,6 +74,7 @@ def run_copywriting(
     campaign_id: str,
     brand: BrandKit | None = None,
     model_id: str = "gemini-3-flash-preview",
+    db: SqliteDb | None = None,
 ) -> CopyDeck:
     """Generate copy based on strategy.
 
@@ -73,12 +83,13 @@ def run_copywriting(
         campaign_id: ID of the current campaign
         brand: Brand kit for voice guidelines
         model_id: Gemini model to use
+        db: Agno database for Culture access
 
     Returns:
         Structured CopyDeck
     """
     agent = create_copywriter(
-        campaign_id=campaign_id, brand=brand, model_id=model_id
+        campaign_id=campaign_id, brand=brand, model_id=model_id, db=db
     )
     result = agent.run(
         f"""Create a copy deck based on this strategy brief.

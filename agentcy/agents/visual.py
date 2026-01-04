@@ -1,9 +1,12 @@
 """Visual agent with image generation tools.
 
 Creates visual concepts and generates images using Replicate.
+
+Uses Agno Culture for brand guidelines and visual standards.
 """
 
 from agno.agent import Agent
+from agno.db.sqlite import SqliteDb
 from agno.models.google import Gemini
 from pydantic import BaseModel, Field
 
@@ -29,6 +32,7 @@ class VisualConcept(BaseModel):
 def create_visual_agent(
     campaign_id: str,
     model_id: str = "gemini-3-flash-preview",
+    db: SqliteDb | None = None,
     debug: bool = False,
 ) -> Agent:
     """Create a Visual agent.
@@ -36,10 +40,11 @@ def create_visual_agent(
     Args:
         campaign_id: ID of the current campaign
         model_id: Gemini model to use
+        db: Agno database for Culture access
         debug: Enable debug logging
 
     Returns:
-        Configured Agno Agent
+        Configured Agno Agent with Culture context
     """
     from agentcy.tools.visual import generate_image
 
@@ -54,9 +59,13 @@ def create_visual_agent(
             "Define a consistent style and color palette.",
             "Create detailed image prompts that are specific and actionable.",
             "Generate 2-3 hero images using the generate_image tool.",
-            "Ensure visuals align with brand guidelines if provided.",
+            "Ensure visuals align with brand guidelines from Culture.",
             f"Always set campaign_id to '{campaign_id}' in your response.",
         ],
+        # Culture integration
+        db=db,
+        add_culture_to_context=True if db else False,
+        update_cultural_knowledge=False,
         add_datetime_to_context=True,
         debug_mode=debug,
     )
@@ -67,6 +76,7 @@ def run_visual_creation(
     campaign_id: str,
     brand_colors: list[str] | None = None,
     model_id: str = "gemini-3-flash-preview",
+    db: SqliteDb | None = None,
 ) -> VisualConcept:
     """Create visual concepts and generate images.
 
@@ -75,11 +85,12 @@ def run_visual_creation(
         campaign_id: ID of the current campaign
         brand_colors: Optional brand color palette
         model_id: Gemini model to use
+        db: Agno database for Culture access
 
     Returns:
         VisualConcept with generated images
     """
-    agent = create_visual_agent(campaign_id=campaign_id, model_id=model_id)
+    agent = create_visual_agent(campaign_id=campaign_id, model_id=model_id, db=db)
 
     color_context = ""
     if brand_colors:

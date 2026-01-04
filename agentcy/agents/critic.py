@@ -2,9 +2,12 @@
 
 Reviews artifacts against quality rubrics and brand guidelines.
 Provides scores and improvement recommendations.
+
+Uses Agno Culture for quality rubrics and brand voice standards.
 """
 
 from agno.agent import Agent
+from agno.db.sqlite import SqliteDb
 from agno.models.google import Gemini
 from pydantic import BaseModel, Field
 
@@ -34,6 +37,7 @@ class QualityReview(BaseModel):
 def create_critic(
     brand: BrandKit | None = None,
     model_id: str = "gemini-3-flash-preview",
+    db: SqliteDb | None = None,
     debug: bool = False,
 ) -> Agent:
     """Create a Critic agent.
@@ -41,10 +45,11 @@ def create_critic(
     Args:
         brand: Brand kit for alignment checking
         model_id: Gemini model to use
+        db: Agno database for Culture access
         debug: Enable debug logging
 
     Returns:
-        Configured Agno Agent
+        Configured Agno Agent with Culture context
     """
     brand_context = ""
     if brand:
@@ -64,15 +69,19 @@ BRAND GUIDELINES:
         output_schema=QualityReview,
         description="You are a senior creative director who reviews campaign artifacts for quality.",
         instructions=[
-            "Review artifacts against the quality rubrics.",
+            "Review artifacts against quality rubrics from Culture.",
             "Score each rubric item and calculate overall score.",
             "Identify specific strengths to preserve.",
             "Provide actionable improvement recommendations.",
-            "Check brand voice alignment if guidelines provided.",
+            "Check brand voice alignment using guidelines from Culture.",
             "Set approved=True only if overall_score >= 0.7.",
             "Be constructive but rigorous in your feedback.",
             brand_context,
         ],
+        # Culture integration - critic reads quality rubrics and brand voice
+        db=db,
+        add_culture_to_context=True if db else False,
+        update_cultural_knowledge=False,  # Reviews don't update culture
         add_datetime_to_context=True,
         debug_mode=debug,
     )
@@ -83,6 +92,7 @@ def review_artifact(
     artifact_type: str,
     brand: BrandKit | None = None,
     model_id: str = "gemini-3-flash-preview",
+    db: SqliteDb | None = None,
 ) -> QualityReview:
     """Review an artifact for quality.
 
@@ -91,11 +101,12 @@ def review_artifact(
         artifact_type: Type of artifact (research, strategy, copy, activation)
         brand: Brand kit for alignment checking
         model_id: Gemini model to use
+        db: Agno database for Culture access
 
     Returns:
         QualityReview with scores and feedback
     """
-    agent = create_critic(brand=brand, model_id=model_id)
+    agent = create_critic(brand=brand, model_id=model_id, db=db)
 
     rubric_context = _get_rubric_for_type(artifact_type)
 

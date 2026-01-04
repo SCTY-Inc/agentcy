@@ -330,3 +330,107 @@ class TestObservability:
         assert summary["total_cost_usd"] > 0
         assert "research" in summary["by_stage"]
         assert "strategy" in summary["by_stage"]
+
+
+class TestCulture:
+    """Test Agno Culture integration."""
+
+    def test_culture_seeding(self):
+        """Test Culture seeding functions."""
+        import tempfile
+        from agentcy.culture.seed import (
+            get_culture_manager,
+            seed_marketing_frameworks,
+            seed_quality_rubrics,
+            seed_copywriting_principles,
+            seed_brand_voice,
+            seed_all,
+            _seeded,
+        )
+        from agentcy.models.brand import BrandKit, VoiceGuidelines
+        from agentcy.db import reset_db
+
+        # Reset for fresh test
+        reset_db()
+        _seeded.clear()
+
+        # Get culture manager
+        manager = get_culture_manager()
+        assert manager is not None
+
+        # Seed marketing frameworks
+        seed_marketing_frameworks(manager)
+        assert "marketing_frameworks" in _seeded
+
+        # Seed quality rubrics
+        seed_quality_rubrics(manager)
+        assert "quality_rubrics" in _seeded
+
+        # Seed copywriting principles
+        seed_copywriting_principles(manager)
+        assert "copywriting_principles" in _seeded
+
+        # Seed brand voice
+        brand = BrandKit(
+            name="TestBrand",
+            voice=VoiceGuidelines(
+                tone=["professional", "confident"],
+                avoid=["jargon", "buzzwords"],
+            ),
+        )
+        seed_brand_voice(manager, brand)
+        assert "brand_voice:TestBrand" in _seeded
+
+        # Clean up
+        reset_db()
+        _seeded.clear()
+
+    def test_ensure_culture_seeded_convenience(self):
+        """Test convenience function for seeding."""
+        from agentcy.culture import ensure_culture_seeded
+        from agentcy.culture.seed import _seeded
+        from agentcy.db import reset_db
+
+        # Reset for fresh test
+        reset_db()
+        _seeded.clear()
+
+        # Call convenience function
+        ensure_culture_seeded(brand=None)
+
+        # Verify seeded
+        assert "marketing_frameworks" in _seeded
+        assert "quality_rubrics" in _seeded
+        assert "copywriting_principles" in _seeded
+
+        # Clean up
+        reset_db()
+        _seeded.clear()
+
+    def test_controller_seeds_culture(self):
+        """Test that CampaignController seeds Culture on init."""
+        from agentcy.controller import CampaignController
+        from agentcy.config import AgentcyConfig
+        from agentcy.culture.seed import _seeded
+        from agentcy.db import reset_db
+
+        # Reset for fresh test
+        reset_db()
+        _seeded.clear()
+
+        # Create controller (should seed Culture)
+        campaign = Campaign(id="culture-test", brief="Test Culture")
+        config = AgentcyConfig()
+        controller = CampaignController(campaign=campaign, config=config)
+
+        # Verify Culture was seeded
+        assert "marketing_frameworks" in _seeded
+        assert "quality_rubrics" in _seeded
+        assert "copywriting_principles" in _seeded
+
+        # Verify db is available
+        assert controller.db is not None
+
+        # Clean up
+        reset_db()
+        _seeded.clear()
