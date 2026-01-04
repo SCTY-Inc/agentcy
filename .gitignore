@@ -16,4 +16,6 @@ imgs/*
 scrape.py
 ui/
 __pycache__
-archive/*
+# Keep archive/ but ignore large/generated files within it
+archive/*/output/
+archive/*/__pycache__/

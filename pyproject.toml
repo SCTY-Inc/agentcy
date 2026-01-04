@@ -1,17 +1,51 @@
 [project]
 name = "agentcy"
 version = "2.0.0"
-description = "Multi-Agent Creative Collaboration Platform - Modernized with AG2"
+description = "AI-powered marketing campaign generator with human approval gates"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ag2[openai]>=0.9.7",
-    "beautifulsoup4>=4.12.0",
-    "requests>=2.31.0",
-    "python-dotenv>=1.1.1",
-    "html2text>=2024.2.26",
-    "selenium>=4.15.0",
-    "webdriver-manager>=4.0.0",
+    # Agent framework (Culture feature requires 2.1.10+)
+    "agno>=2.1.10",
+    # Schemas (pin for sqlmodel compat)
+    "pydantic>=2.0,<3.0",
+    # CLI
+    "typer>=0.9.0",
+    # Terminal UI
+    "rich>=13.0",
+    # Config files
+    "pyyaml>=6.0",
+    # HTTP client
+    "httpx>=0.25",
+    # SQLite ORM (pydantic v2 compat)
+    "sqlmodel>=0.0.22",
+    # Environment variables
+    "python-dotenv>=1.0.0",
+    # Image generation
     "replicate>=0.15.0",
-    "tqdm>=4.66.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+agentcy = "agentcy.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
