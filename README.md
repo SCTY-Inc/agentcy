@@ -13,6 +13,8 @@ Agentcy transforms a brief into a complete campaign package using specialized AI
 - **Brand Voice Compliance**: Validates copy against brand guidelines
 - **Quality Rubrics**: Structured evaluation criteria per artifact
 
+> **Note**: This project was originally built on AG2 (formerly AutoGen) and migrated to [Agno](https://github.com/agno-agi/agno) for its cleaner agent API, native structured outputs, and Culture feature for shared agent knowledge.
+
 ## Quick Start
 
 ```bash

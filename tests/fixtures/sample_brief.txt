@@ -1,6 +1,0 @@
-Launch Acme Pro, our new enterprise-grade solution for automated workflow management.
-
-Target: CTOs and VP Engineering at companies with 100-500 employees.
-Key differentiators: 50% faster deployment, native integrations, SOC2 compliant.
-Budget: $50K for Q1 launch campaign.
-Timeline: 6 weeks to market.
