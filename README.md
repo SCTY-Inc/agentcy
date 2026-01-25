@@ -1,19 +1,6 @@
-# Agentcy
+# Agency
 
-AI-powered marketing campaign generator with human approval gates.
-
-## Overview
-
-Agentcy transforms a brief into a complete campaign package using specialized AI agents. Each stage requires human approval before proceeding, ensuring quality and alignment.
-
-**Key Features:**
-- **6 Specialized Agents**: Researcher, Strategist, Copywriter, Visual Director, Marketer, Critic
-- **Human-in-the-Loop**: Approve, edit, or regenerate at each stage
-- **Resumable Sessions**: Save progress and continue later
-- **Brand Voice Compliance**: Validates copy against brand guidelines
-- **Quality Rubrics**: Structured evaluation criteria per artifact
-
-> **Note**: This project was originally built on AG2 (formerly AutoGen) and migrated to [Agno](https://github.com/agno-agi/agno) for its cleaner agent API, native structured outputs, and Culture feature for shared agent knowledge.
+AI marketing agency. Agent-first by default, human-in-the-loop optional.
 
 ## Quick Start
 
@@ -21,146 +8,108 @@ Agentcy transforms a brief into a complete campaign package using specialized AI
 # Install
 uv sync
 
-# Run a campaign
-agentcy run --brief "Launch our new productivity app for remote teams"
+# Run full pipeline (outputs JSON)
+agency run "Launch AI product to developers"
 
-# Resume a paused campaign
-agentcy resume <campaign-id>
+# Save to file
+agency run "Brief" -o campaign.json
 
-# List campaigns
-agentcy list
+# Interactive mode (human gates)
+agency run "Brief" --interactive
 ```
 
-## Workflow
-
-```
-INTAKE → RESEARCH → STRATEGY → CREATIVE → ACTIVATION → PACKAGING → DONE
-           ↓           ↓           ↓            ↓            ↓
-        [Gate]      [Gate]      [Gate]       [Gate]       [Gate]
-```
-
-At each gate you can:
-- **[A]pprove** - Accept and continue
-- **[E]dit** - Modify the artifact
-- **[R]egenerate** - Generate a new version
-- **[S]kip** - Bypass this stage
-- **[Q]uit** - Save and exit
-
-## Commands
+## CLI
 
 ```bash
-# Initialize with brand kit
-agentcy init --template product-launch --brand ./brand/
+# Full pipeline
+agency run "Brief"                    # Non-interactive, outputs JSON
+agency run "Brief" -i                 # Interactive with approval gates
+agency run "Brief" -o out.json        # Save to file
 
-# Run with all options
-agentcy run \
-  --brief "Your campaign brief" \
-  --brand ./brand/ \
-  --output ./campaigns/ \
-  --template product-launch
+# Individual stages (pipeable)
+agency research "AI dev tools market"
+agency research "Brief" | agency strategy
+agency strategy < research.json | agency creative
+agency creative < strategy.json | agency activate -s strategy.json
 
-# Export to different formats
-agentcy export ./campaigns/my-campaign/ --format md
+# Interactive sessions
+agency list                           # List saved campaigns
+agency resume <id>                    # Resume interactive session
 ```
 
-## Configuration
+## Python API
 
-### Brand Kit (brand/brand.yaml)
+```python
+from agency import research, strategy, creative, activate, run
 
-```yaml
-name: "Acme Corp"
-tagline: "Innovation delivered"
-industry: "B2B SaaS"
-target_audience: "CTOs at mid-market companies"
+# Full pipeline
+result = run("Launch AI product to devs")
 
-voice:
-  tone:
-    - professional
-    - confident
-    - approachable
-  avoid:
-    - jargon
-    - buzzwords
-    - synergy
+# Individual stages
+r = research("AI dev tools market")
+s = strategy(r)
+c = creative(s)
+a = activate(s, c)
 ```
 
-### Global Config (~/.agentcy/config.yaml)
-
-```yaml
-models:
-  default: gemini-3-flash-preview
-  research: gemini-2.5-flash-lite
-  creative: gemini-3-flash-preview
-  critic: gemini-3-flash-preview
-
-output_dir: ./campaigns/
-```
-
-## Templates
-
-### Product Launch (default)
-
-Stages:
-1. **Research**: Market analysis, competitors, audience insights
-2. **Strategy**: Positioning, messaging pillars, target persona
-3. **Creative**: Headlines, body copy, CTAs
-4. **Activation**: Channel mix, content calendar, KPIs
-
-## Output Structure
+## Pipeline
 
 ```
-campaigns/<campaign-id>/
-├── campaign.json         # Campaign state (resumable)
-├── research/
-│   └── report.md         # Research findings
-├── strategy/
-│   └── brief.md          # Strategy brief
-├── creative/
-│   └── copy.md           # Copy deck
-├── activation/
-│   └── plan.md           # Activation plan
-└── package/
-    └── brief.md          # Campaign summary
+Brief (str)
+    │
+    ▼
+┌─────────────┐
+│  research   │ → ResearchResult (insights, competitors, sources)
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│  strategy   │ → StrategyResult (positioning, audience, pillars)
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│  creative   │ → CreativeResult (headlines, body copy, CTAs)
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│  activate   │ → ActivationResult (channels, calendar, KPIs)
+└─────────────┘
+    │
+    ▼
+JSON output
 ```
 
-## Environment Variables
+## Environment
 
 ```bash
-# Required for live tools
-GOOGLE_API_KEY=your_gemini_key
+# Required
+GOOGLE_API_KEY=...           # Gemini API key
 
 # Optional
-SERPER_API_KEY=your_serper_key     # Web search
-REPLICATE_API_TOKEN=your_token     # Image generation
-
-# Development
-AGENTCY_LIVE_TOOLS=1               # Use live APIs (default: stubs)
+AGENCY_MODEL=gemini-2.0-flash  # Override default model
+SERPER_API_KEY=...             # Live web search
+AGENCY_LIVE_TOOLS=1            # Enable live APIs (default: stubs)
 ```
 
 ## Development
 
 ```bash
-# Install dev dependencies
 uv sync --dev
-
-# Run tests
-uv run pytest tests/ -v
-
-# Type check
-uv run mypy agentcy/
-
-# Format
-uv run ruff format agentcy/
+uv run ruff check agency/
+uv run ruff format agency/
 ```
 
-## Architecture
+## History
 
-Built on [Agno](https://github.com/agno-agi/agno) with a custom state machine controller:
-
-- **Agents**: Agno agents with structured outputs (Pydantic)
-- **Controller**: Python state machine with stage transitions
-- **Persistence**: SQLite for campaign state
-- **Gates**: Rich CLI for human-in-the-loop approval
+| Date | Version | Changes |
+|------|---------|---------|
+| 2026-01-25 | v4.0 | Rewrite as agent-first CLI. Non-interactive default, `--interactive` flag for HITL. Composable stages. JSON file storage. |
+| 2026-01-04 | v3.1 | Add Agno Culture for shared agent knowledge. Improvement beads. |
+| 2026-01-03 | v3.0 | Migrate to Agno framework. 6 specialized agents. SQLite persistence. Quality rubrics. |
+| 2026-01-03 | v2.0 | Switch from OpenAI/Anthropic to Gemini. Add controller + gates. |
+| 2025-08-03 | v1.0 | Initial AG2 (AutoGen) implementation. |
 
 ## License
 
