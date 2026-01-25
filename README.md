@@ -109,7 +109,9 @@ uv run ruff format agency/
 | 2026-01-04 | v3.1 | Add Agno Culture for shared agent knowledge. Improvement beads. |
 | 2026-01-03 | v3.0 | Migrate to Agno framework. 6 specialized agents. SQLite persistence. Quality rubrics. |
 | 2026-01-03 | v2.0 | Switch from OpenAI/Anthropic to Gemini. Add controller + gates. |
-| 2025-08-03 | v1.0 | Initial AG2 (AutoGen) implementation. |
+| 2025-08-03 | v1.0 | Migrate to AG2 (AutoGen rebrand). Consolidate experimental packages. |
+| 2023-10-12 | v0.2 | Add RAG web search for research. Chat logging. |
+| 2023-09-27 | v0.1 | Initial POC. AutoGen group chat with Researcher, Strategist, Copywriter, Art Director, Marketer agents. OpenAI GPT-4. |
 
 ## License
 
