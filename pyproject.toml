@@ -1,43 +1,25 @@
 [project]
-name = "agentcy"
-version = "2.0.0"
-description = "AI-powered marketing campaign generator with human approval gates"
+name = "agency"
+version = "4.0.0"
+description = "AI marketing agency. Agent-first, HITL optional."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    # Agent framework (Culture feature requires 2.1.10+)
-    "agno>=2.1.10",
-    # Schemas (pin for sqlmodel compat)
     "pydantic>=2.0,<3.0",
-    # CLI
     "typer>=0.9.0",
-    # Terminal UI
     "rich>=13.0",
-    # Config files
-    "pyyaml>=6.0",
-    # HTTP client
     "httpx>=0.25",
-    # SQLite ORM (pydantic v2 compat)
-    "sqlmodel>=0.0.22",
-    # Environment variables
-    "python-dotenv>=1.0.0",
-    # Image generation
-    "replicate>=0.15.0",
-    # LLM provider (Gemini)
     "google-genai>=1.0.0",
-    # Web scraping
-    "beautifulsoup4>=4.12.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "pytest-asyncio>=0.23",
     "ruff>=0.1.0",
 ]
 
 [project.scripts]
-agentcy = "agentcy.cli:app"
+agency = "agency.cli:app"
 
 [build-system]
 requires = ["hatchling"]
@@ -51,5 +33,4 @@ target-version = "py312"
 select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]

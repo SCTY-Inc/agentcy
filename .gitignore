@@ -1,6 +1,7 @@
 .venv
 .cache
 .env
+.agency/
 *workspace
 OAI_CONFIG_LIST
 *workspace
@@ -14,7 +15,7 @@ logs/*
 /exp.py
 imgs/*
 scrape.py
-ui/
+/ui/
 __pycache__
 # Keep archive/ but ignore large/generated files within it
 archive/*/output/
