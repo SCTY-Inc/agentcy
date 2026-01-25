@@ -27,11 +27,20 @@ class Store:
     """JSON file store for interactive mode."""
 
     def __init__(self, base_dir: str = ".agency"):
-        self.base = Path(base_dir)
+        self.base = Path(base_dir).resolve()
         self.base.mkdir(exist_ok=True)
 
     def _path(self, campaign_id: str) -> Path:
-        return self.base / f"{campaign_id}.json"
+        """Get path for campaign, preventing path traversal."""
+        # Sanitize: only allow alphanumeric, dash, underscore
+        safe_id = "".join(c for c in campaign_id if c.isalnum() or c in "-_")
+        if not safe_id:
+            raise ValueError("Invalid campaign ID")
+        path = (self.base / f"{safe_id}.json").resolve()
+        # Ensure path is within base directory
+        if not str(path).startswith(str(self.base)):
+            raise ValueError("Invalid campaign ID")
+        return path
 
     def create(self, campaign_id: str, brief: str) -> CampaignState:
         """Create new campaign."""

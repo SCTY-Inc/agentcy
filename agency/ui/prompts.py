@@ -23,6 +23,7 @@ console = Console()
 
 class GateAction(str, Enum):
     """User action at approval gate."""
+
     APPROVE = "approve"
     REGENERATE = "regenerate"
     SKIP = "skip"
@@ -74,11 +75,11 @@ def _format_result(stage: str, data: dict[str, Any]) -> str:
 
     elif stage == "strategy":
         if pos := data.get("positioning"):
-            lines.append(f"**Positioning:**\n{pos[:200]}...")
+            lines.append(f"**Positioning:**\n{pos[:200]}{'...' if len(pos) > 200 else ''}")
         if pillars := data.get("messaging_pillars", []):
             lines.append("\n**Messaging Pillars:**")
             for p in pillars:
-                lines.append(f"- {p}")
+                lines.append(f"- {p[:100]}{'...' if len(p) > 100 else ''}")
 
     elif stage == "creative":
         if headlines := data.get("headlines", []):
@@ -92,7 +93,9 @@ def _format_result(stage: str, data: dict[str, Any]) -> str:
         if channels := data.get("channels", []):
             lines.append("**Channels:**")
             for ch in channels[:4]:
-                lines.append(f"- {ch.get('name', 'Unknown')}: {ch.get('objective', '')[:50]}")
+                obj = ch.get("objective", "")[:80]
+                name = ch.get("name", "Unknown")
+                lines.append(f"- {name}: {obj}{'...' if len(ch.get('objective', '')) > 80 else ''}")
         if kpis := data.get("kpis", []):
             lines.append(f"\n**KPIs:** {len(kpis)} defined")
 
@@ -102,6 +105,7 @@ def _format_result(stage: str, data: dict[str, Any]) -> str:
 def _pretty_json(data: dict) -> str:
     """Format dict as pretty JSON."""
     import json
+
     return json.dumps(data, indent=2, default=str)
 
 
@@ -150,11 +154,13 @@ def prompt_gate(stage: str, result: BaseModel) -> GateResult:
                 return GateResult(GateAction.QUIT)
 
         elif choice == "f":
-            console.print(Panel(
-                Markdown(f"```json\n{_pretty_json(result.model_dump())}\n```"),
-                title="Full Result",
-                border_style="dim",
-            ))
+            console.print(
+                Panel(
+                    Markdown(f"```json\n{_pretty_json(result.model_dump())}\n```"),
+                    title="Full Result",
+                    border_style="dim",
+                )
+            )
             console.print()
 
 

@@ -143,7 +143,12 @@ def cmd_activate(
 
     # Need strategy too - from file or must be piped separately
     if strategy_file:
-        s = StrategyResult.model_validate_json(strategy_file.read_text())
+        if not strategy_file.exists():
+            raise typer.BadParameter(f"Strategy file not found: {strategy_file}")
+        try:
+            s = StrategyResult.model_validate_json(strategy_file.read_text())
+        except Exception as e:
+            raise typer.BadParameter(f"Invalid strategy JSON: {e}")
     else:
         raise typer.BadParameter(
             "Activation requires strategy. Use -s/--strategy to provide strategy JSON file"
@@ -218,8 +223,17 @@ def _run_interactive(brief: str, campaign_id: str | None = None) -> None:
 
         if gate.should_quit:
             store.save_stage(campaign_id, "research", r, "research")
-            console.print("[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
+            console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
             raise typer.Exit(0)
+
+        while gate.should_regenerate:
+            console.print("[dim]Regenerating research...[/dim]")
+            r = research(brief)
+            gate = prompt_gate("research", r)
+            if gate.should_quit:
+                store.save_stage(campaign_id, "research", r, "research")
+                console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
+                raise typer.Exit(0)
 
         if gate.should_continue:
             store.save_stage(campaign_id, "research", r, "strategy")
@@ -239,7 +253,17 @@ def _run_interactive(brief: str, campaign_id: str | None = None) -> None:
 
         if gate.should_quit:
             store.save_stage(campaign_id, "strategy", s, "strategy")
+            console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
             raise typer.Exit(0)
+
+        while gate.should_regenerate:
+            console.print("[dim]Regenerating strategy...[/dim]")
+            s = strategy(r)
+            gate = prompt_gate("strategy", s)
+            if gate.should_quit:
+                store.save_stage(campaign_id, "strategy", s, "strategy")
+                console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
+                raise typer.Exit(0)
 
         if gate.should_continue:
             store.save_stage(campaign_id, "strategy", s, "creative")
@@ -258,7 +282,17 @@ def _run_interactive(brief: str, campaign_id: str | None = None) -> None:
 
         if gate.should_quit:
             store.save_stage(campaign_id, "creative", c, "creative")
+            console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
             raise typer.Exit(0)
+
+        while gate.should_regenerate:
+            console.print("[dim]Regenerating creative...[/dim]")
+            c = creative(s)
+            gate = prompt_gate("creative", c)
+            if gate.should_quit:
+                store.save_stage(campaign_id, "creative", c, "creative")
+                console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
+                raise typer.Exit(0)
 
         if gate.should_continue:
             store.save_stage(campaign_id, "creative", c, "activation")
@@ -277,7 +311,17 @@ def _run_interactive(brief: str, campaign_id: str | None = None) -> None:
 
         if gate.should_quit:
             store.save_stage(campaign_id, "activation", a, "activation")
+            console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
             raise typer.Exit(0)
+
+        while gate.should_regenerate:
+            console.print("[dim]Regenerating activation...[/dim]")
+            a = activate(s, c)
+            gate = prompt_gate("activation", a)
+            if gate.should_quit:
+                store.save_stage(campaign_id, "activation", a, "activation")
+                console.print(f"[yellow]Saved. Resume with: agency resume {campaign_id}[/yellow]")
+                raise typer.Exit(0)
 
         if gate.should_continue:
             store.save_stage(campaign_id, "activation", a, "done")

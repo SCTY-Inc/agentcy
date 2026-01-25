@@ -3,7 +3,7 @@
 Thin wrapper around google-genai providing:
 - Structured output via Pydantic schemas
 - Consistent error handling
-- Tool execution support
+- Configurable model via AGENCY_MODEL env var
 """
 
 import json
@@ -14,6 +14,13 @@ from google.genai import types
 from pydantic import BaseModel
 
 _client: genai.Client | None = None
+
+DEFAULT_MODEL = "gemini-2.0-flash"
+
+
+def get_model() -> str:
+    """Get model from env or default."""
+    return os.getenv("AGENCY_MODEL", DEFAULT_MODEL)
 
 
 def get_client() -> genai.Client:
@@ -27,12 +34,19 @@ def get_client() -> genai.Client:
     return _client
 
 
+class LLMError(Exception):
+    """Error during LLM generation."""
+
+    pass
+
+
 def generate[T: BaseModel](
     prompt: str,
     schema: type[T],
     system: str | None = None,
-    model: str = "gemini-3-flash-preview",
+    model: str | None = None,
     thinking: str = "low",
+    retries: int = 2,
 ) -> T:
     """Generate structured output from prompt.
 
@@ -40,13 +54,18 @@ def generate[T: BaseModel](
         prompt: User prompt
         schema: Pydantic model for structured output
         system: Optional system instruction
-        model: Model ID (default: gemini-3-flash-preview)
+        model: Model ID (default: AGENCY_MODEL env or gemini-2.0-flash)
         thinking: Thinking level (off, low, medium, high)
+        retries: Number of retries on failure
 
     Returns:
         Pydantic model instance
+
+    Raises:
+        LLMError: If generation fails after retries
     """
     client = get_client()
+    model = model or get_model()
 
     config_kwargs: dict = {
         "response_mime_type": "application/json",
@@ -61,11 +80,27 @@ def generate[T: BaseModel](
 
     config = types.GenerateContentConfig(**config_kwargs)
 
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=config,
-    )
+    last_error: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
 
-    data = json.loads(response.text)
-    return schema(**data)
+            if not response.text:
+                raise LLMError("Empty response from model")
+
+            data = json.loads(response.text)
+            return schema(**data)
+
+        except json.JSONDecodeError as e:
+            last_error = LLMError(f"Invalid JSON from model: {e}")
+        except Exception as e:
+            last_error = LLMError(f"Generation failed: {e}")
+
+        if attempt < retries:
+            continue
+
+    raise last_error or LLMError("Generation failed")

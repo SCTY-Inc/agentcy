@@ -90,7 +90,9 @@ def run(brief: str) -> ResearchResult:
         ResearchResult with insights, competitors, sources
     """
     search_results = _search_web(brief, num_results=5)
-    sources_ctx = "\n".join(f"- {r['title']}: {r['snippet']} ({r['url']})" for r in search_results)
+    sources_ctx = "\n".join(
+        f"- {r['title'][:80]}: {r['snippet'][:150]} ({r['url']})" for r in search_results
+    )
 
     prompt = f"""Research the following campaign brief.
 

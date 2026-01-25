@@ -1,5 +1,5 @@
 """Core utilities for agency."""
 
-from agency.core.llm import generate
+from agency.core.llm import LLMError, generate
 
-__all__ = ["generate"]
+__all__ = ["generate", "LLMError"]
