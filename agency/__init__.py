@@ -12,15 +12,22 @@ Usage:
     c = creative(s)
     a = activate(s, c)
 
+    # Plugins
+    from agency import plugins
+    seo_result = plugins.run_plugin("seo", r)
+
     # With HITL (CLI only)
     agency run "Brief" --interactive
 """
 
-from agency.stages import (
+from agency.schemas import (
+    SCHEMAS,
     ActivationResult,
     CreativeResult,
     ResearchResult,
     StrategyResult,
+)
+from agency.stages import (
     activate,
     creative,
     research,
@@ -68,4 +75,5 @@ __all__ = [
     "StrategyResult",
     "CreativeResult",
     "ActivationResult",
+    "SCHEMAS",
 ]

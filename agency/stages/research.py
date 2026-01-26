@@ -4,39 +4,9 @@ Input: Campaign brief (str)
 Output: ResearchResult with insights, competitors, sources
 """
 
-import os
-
-from pydantic import BaseModel, Field
-
 from agency.core.llm import generate
-
-
-class Source(BaseModel):
-    """Research source reference."""
-
-    url: str
-    title: str
-    snippet: str = ""
-
-
-class Competitor(BaseModel):
-    """Competitor analysis."""
-
-    name: str
-    positioning: str
-    strengths: list[str] = Field(default_factory=list)
-    weaknesses: list[str] = Field(default_factory=list)
-
-
-class ResearchResult(BaseModel):
-    """Output of research stage."""
-
-    brief: str
-    insights: list[str] = Field(default_factory=list)
-    competitors: list[Competitor] = Field(default_factory=list)
-    sources: list[Source] = Field(default_factory=list)
-    assumptions: list[str] = Field(default_factory=list)
-
+from agency.schemas import ResearchResult, Source
+from agency.tools.search import search
 
 SYSTEM = """You are a market research expert. Analyze the campaign brief and provide:
 - Key market insights relevant to the campaign
@@ -44,40 +14,6 @@ SYSTEM = """You are a market research expert. Analyze the campaign brief and pro
 - Assumptions that need validation
 
 Be specific and evidence-based. Focus on actionable intelligence."""
-
-
-def _search_web(query: str, num_results: int = 5) -> list[dict]:
-    """Search web for research (stub unless AGENCY_LIVE_TOOLS=1)."""
-    if os.getenv("AGENCY_LIVE_TOOLS", "").lower() in ("1", "true"):
-        return _live_search(query, num_results)
-    return [
-        {
-            "title": f"Result {i + 1} for: {query}",
-            "url": f"https://example.com/{i + 1}",
-            "snippet": f"Stub result for {query}",
-        }
-        for i in range(min(num_results, 3))
-    ]
-
-
-def _live_search(query: str, num_results: int) -> list[dict]:
-    """Live web search via Serper API."""
-    import httpx
-
-    api_key = os.getenv("SERPER_API_KEY")
-    if not api_key:
-        raise ValueError("SERPER_API_KEY required for live search")
-    response = httpx.post(
-        "https://google.serper.dev/search",
-        headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
-        json={"q": query, "num": num_results},
-        timeout=30.0,
-    )
-    response.raise_for_status()
-    return [
-        {"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")}
-        for r in response.json().get("organic", [])[:num_results]
-    ]
 
 
 def run(brief: str) -> ResearchResult:
@@ -89,10 +25,16 @@ def run(brief: str) -> ResearchResult:
     Returns:
         ResearchResult with insights, competitors, sources
     """
-    search_results = _search_web(brief, num_results=5)
+    # Search for market context
+    search_results = search(brief, num_results=5)
+
+    # Format search results for prompt
     sources_ctx = "\n".join(
-        f"- {r['title'][:80]}: {r['snippet'][:150]} ({r['url']})" for r in search_results
+        f"- {r.title[:80]}: {r.snippet[:150]} ({r.url})" for r in search_results
     )
+
+    # Convert to schema format for output
+    sources = [Source(url=r.url, title=r.title, snippet=r.snippet) for r in search_results]
 
     prompt = f"""Research the following campaign brief.
 
@@ -107,6 +49,13 @@ Analyze and provide:
 2. Competitor analysis (if applicable)
 3. Assumptions that need validation
 
-Set brief to the original brief text."""
+Set brief to the original brief text.
+Include the search results as sources."""
 
-    return generate(prompt=prompt, schema=ResearchResult, system=SYSTEM)
+    result = generate(prompt=prompt, schema=ResearchResult, system=SYSTEM)
+
+    # Ensure sources are included
+    if not result.sources:
+        result.sources = sources
+
+    return result

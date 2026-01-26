@@ -2,6 +2,7 @@
 
 Default: Non-interactive, outputs JSON
 --interactive: Enables human approval gates
+--format: Output format (json, yaml, markdown, table)
 """
 
 import json
@@ -12,25 +13,31 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from agency.stages import (
-    CreativeResult,
-    ResearchResult,
-    StrategyResult,
-    activate,
-    creative,
-    research,
-    strategy,
-)
+from agency import plugins
+from agency.core.output import OutputFormat, format_output
+from agency.schemas import SCHEMAS, CreativeResult, ResearchResult, StrategyResult
+from agency.stages import activate, creative, research, strategy
 
-app = typer.Typer(help="AI marketing agency. Non-interactive by default.")
+app = typer.Typer(
+    help="AI marketing agency. Non-interactive by default.",
+    no_args_is_help=True,
+)
 console = Console()
 
 STAGES = ["research", "strategy", "creative", "activation"]
 
+# Global format option
+FormatOption = typer.Option(
+    OutputFormat.JSON,
+    "-f",
+    "--format",
+    help="Output format: json, yaml, markdown, table",
+)
 
-def _output_json(result, output: Path | None) -> None:
-    """Output result as JSON to stdout or file."""
-    data = result.model_dump_json(indent=2)
+
+def _output(result, output: Path | None, fmt: OutputFormat) -> None:
+    """Output result in specified format."""
+    data = format_output(result, fmt)
     if output:
         output.write_text(data)
         console.print(f"[dim]Saved to {output}[/dim]", file=sys.stderr)
@@ -41,15 +48,19 @@ def _output_json(result, output: Path | None) -> None:
 def _read_stdin_json(schema):
     """Read JSON from stdin and parse into schema."""
     if sys.stdin.isatty():
-        raise typer.BadParameter("Expected JSON input from stdin")
-    data = json.load(sys.stdin)
-    return schema.model_validate(data)
+        return None
+    try:
+        data = json.load(sys.stdin)
+        return schema.model_validate(data)
+    except (json.JSONDecodeError, Exception):
+        return None
 
 
 @app.command()
 def run(
     brief: str = typer.Argument(..., help="Campaign brief"),
     output: Path = typer.Option(None, "-o", "--output", help="Output file (default: stdout)"),
+    fmt: OutputFormat = FormatOption,
     interactive: bool = typer.Option(False, "-i", "--interactive", help="Enable human gates"),
 ) -> None:
     """Run full campaign pipeline.
@@ -93,53 +104,69 @@ def run(
 
 @app.command("research")
 def cmd_research(
-    brief: str = typer.Argument(..., help="Research topic or campaign brief"),
+    brief: str = typer.Argument(None, help="Research topic or campaign brief"),
     output: Path = typer.Option(None, "-o", "--output", help="Output file"),
+    fmt: OutputFormat = FormatOption,
 ) -> None:
     """Run research stage only.
 
     Example: agency research "AI dev tools market"
     """
+    if not brief:
+        # Try stdin for brief text
+        if sys.stdin.isatty():
+            raise typer.BadParameter("Brief required as argument or stdin")
+        brief = sys.stdin.read().strip()
+
     result = research(brief)
-    _output_json(result, output)
+    _output(result, output, fmt)
 
 
 @app.command("strategy")
 def cmd_strategy(
     output: Path = typer.Option(None, "-o", "--output", help="Output file"),
+    fmt: OutputFormat = FormatOption,
 ) -> None:
     """Run strategy stage from research input.
 
     Example: agency research "brief" | agency strategy
     """
     r = _read_stdin_json(ResearchResult)
+    if not r:
+        raise typer.BadParameter("Expected ResearchResult JSON from stdin")
     result = strategy(r)
-    _output_json(result, output)
+    _output(result, output, fmt)
 
 
 @app.command("creative")
 def cmd_creative(
     output: Path = typer.Option(None, "-o", "--output", help="Output file"),
+    fmt: OutputFormat = FormatOption,
 ) -> None:
     """Run creative stage from strategy input.
 
     Example: agency strategy < research.json | agency creative
     """
     s = _read_stdin_json(StrategyResult)
+    if not s:
+        raise typer.BadParameter("Expected StrategyResult JSON from stdin")
     result = creative(s)
-    _output_json(result, output)
+    _output(result, output, fmt)
 
 
 @app.command("activate")
 def cmd_activate(
     strategy_file: Path = typer.Option(None, "-s", "--strategy", help="Strategy JSON file"),
     output: Path = typer.Option(None, "-o", "--output", help="Output file"),
+    fmt: OutputFormat = FormatOption,
 ) -> None:
     """Run activation stage from creative input.
 
     Example: agency creative < strategy.json | agency activate -s strategy.json
     """
     c = _read_stdin_json(CreativeResult)
+    if not c:
+        raise typer.BadParameter("Expected CreativeResult JSON from stdin")
 
     # Need strategy too - from file or must be piped separately
     if strategy_file:
@@ -155,7 +182,74 @@ def cmd_activate(
         )
 
     result = activate(s, c)
-    _output_json(result, output)
+    _output(result, output, fmt)
+
+
+@app.command("plugin")
+def cmd_plugin(
+    name: str = typer.Argument(..., help="Plugin name (e.g., seo, social)"),
+    output: Path = typer.Option(None, "-o", "--output", help="Output file"),
+    fmt: OutputFormat = FormatOption,
+) -> None:
+    """Run a plugin stage.
+
+    Example: agency research "brief" | agency plugin seo
+    Example: agency creative < strategy.json | agency plugin social
+    """
+    plugin = plugins.get(name)
+    if not plugin:
+        available = ", ".join(p.name for p in plugins.list_plugins())
+        raise typer.BadParameter(f"Plugin not found: {name}. Available: {available}")
+
+    # Read input from stdin
+    if sys.stdin.isatty():
+        expected = plugin.input_schema.__name__ if plugin.input_schema else "JSON"
+        raise typer.BadParameter(f"Expected {expected} from stdin")
+
+    try:
+        data = json.load(sys.stdin)
+        if plugin.input_schema:
+            input_data = plugin.input_schema.model_validate(data)
+        else:
+            input_data = data
+    except Exception as e:
+        raise typer.BadParameter(f"Invalid input: {e}")
+
+    result = plugin.run(input_data)
+    _output(result, output, fmt)
+
+
+@app.command("plugins")
+def cmd_plugins() -> None:
+    """List available plugins."""
+    plugin_list = plugins.list_plugins()
+
+    if not plugin_list:
+        console.print("[dim]No plugins installed[/dim]")
+        return
+
+    console.print("[bold]Available plugins:[/bold]")
+    for p in plugin_list:
+        input_name = p.input_schema.__name__ if p.input_schema else "any"
+        console.print(f"  [cyan]{p.name}[/cyan] - {p.description}")
+        console.print(f"    Input: {input_name} → Output: {p.output_schema.__name__}")
+
+
+@app.command("serve")
+def cmd_serve(
+    mcp: bool = typer.Option(False, "--mcp", help="Run as MCP server"),
+) -> None:
+    """Start agency server.
+
+    --mcp: Run as MCP server for Claude/other agents
+    """
+    if mcp:
+        from agency.core.mcp import serve
+
+        serve()
+    else:
+        console.print("[yellow]Use --mcp to start MCP server[/yellow]")
+        console.print("Example: agency serve --mcp")
 
 
 @app.command("list")
@@ -189,6 +283,25 @@ def cmd_resume(
         raise typer.Exit(1)
 
     _run_interactive(campaign.brief, campaign_id=campaign_id)
+
+
+@app.command("schemas")
+def cmd_schemas(
+    name: str = typer.Argument(None, help="Schema name to show details"),
+) -> None:
+    """List or inspect schemas (ubiquitous language)."""
+    if name:
+        schema = SCHEMAS.get(name)
+        if not schema:
+            available = ", ".join(SCHEMAS.keys())
+            raise typer.BadParameter(f"Schema not found: {name}. Available: {available}")
+
+        console.print(f"[bold]{schema.__name__}[/bold]")
+        console.print(schema.model_json_schema())
+    else:
+        console.print("[bold]Available schemas:[/bold]")
+        for n, s in SCHEMAS.items():
+            console.print(f"  [cyan]{n}[/cyan] - {s.__name__}")
 
 
 def _run_interactive(brief: str, campaign_id: str | None = None) -> None:

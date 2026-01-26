@@ -4,20 +4,8 @@ Input: StrategyResult
 Output: CreativeResult with headlines, body copy, CTAs
 """
 
-from pydantic import BaseModel, Field
-
 from agency.core.llm import generate
-from agency.stages.strategy import StrategyResult
-
-
-class CreativeResult(BaseModel):
-    """Output of creative stage."""
-
-    headlines: list[str] = Field(default_factory=list)
-    body_copy: list[str] = Field(default_factory=list)
-    ctas: list[str] = Field(default_factory=list)
-    tagline: str = ""
-
+from agency.schemas import CreativeResult, StrategyResult
 
 SYSTEM = """You are an expert copywriter creating compelling marketing copy.
 

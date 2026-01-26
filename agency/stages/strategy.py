@@ -4,30 +4,8 @@ Input: ResearchResult
 Output: StrategyResult with positioning, audience, messaging pillars
 """
 
-from pydantic import BaseModel, Field
-
 from agency.core.llm import generate
-from agency.stages.research import ResearchResult
-
-
-class Persona(BaseModel):
-    """Target audience persona."""
-
-    name: str
-    demographics: str
-    pain_points: list[str] = Field(default_factory=list)
-    motivations: list[str] = Field(default_factory=list)
-
-
-class StrategyResult(BaseModel):
-    """Output of strategy stage."""
-
-    positioning: str
-    target_audience: Persona
-    messaging_pillars: list[str] = Field(default_factory=list)
-    proof_points: list[str] = Field(default_factory=list)
-    risks: list[str] = Field(default_factory=list)
-
+from agency.schemas import ResearchResult, StrategyResult
 
 SYSTEM = """You are a marketing strategist with expertise in positioning and messaging.
 
